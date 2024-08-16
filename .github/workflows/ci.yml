@@ -1,15 +1,17 @@
-name: CI
+name: Continuous Integration and Deployment
 
-on: [push, pull_request]
+on:
+  push:
+    branches:
+      - main
 
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
+  build-and-deploy:
+    runs-on: ubuntu-latest
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest]
+        os: [ubuntu-latest]
         java: [8, 11]
-
     steps:
     - name: Checkout code
       uses: actions/checkout@v3
@@ -18,9 +20,9 @@ jobs:
       uses: actions/setup-java@v3
       with:
         java-version: ${{ matrix.java }}
-        distribution: 'temurin' # Specify the distribution
+        distribution: 'temurin'
 
-    - name: Cache dependencies
+    - name: Cache Maven packages
       uses: actions/cache@v3
       with:
         path: ~/.m2/repository
@@ -31,16 +33,22 @@ jobs:
     - name: Build with Maven
       run: mvn -B package --file pom.xml
 
-    - name: Verify build output
-      run: ls -la target
+    - name: Run tests
+      run: mvn test
+
+    - name: Deploy to AWS EC2
+      if: github.ref == 'refs/heads/main'
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+        EC2_USER: ${{ secrets.EC2_USER }}
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        TARGET_DIR: ${{ secrets.TARGET_DIR }}
+      run: |
+        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ${TARGET_DIR} && scp -r ./target/* ${EC2_USER}@${EC2_HOST}:${TARGET_DIR}"
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3
       with:
         name: build-artifacts
-        path: target/*.jar
-
-    - name: Use secret
-      run: echo "Using secret: ${{ secrets.SECRET_NAME }}"
-
-      #hidden steps
+        path: target/
+        retention-days: 7
