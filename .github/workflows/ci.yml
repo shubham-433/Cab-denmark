@@ -36,19 +36,37 @@ jobs:
     - name: Run tests
       run: mvn test
 
-    - name: Deploy to AWS EC2
-      if: github.ref == 'refs/heads/main'
+    - name: Deploy to EC2
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         EC2_USER: ${{ secrets.EC2_USER }}
         EC2_HOST: ${{ secrets.EC2_HOST }}
         TARGET_DIR: ${{ secrets.TARGET_DIR }}
       run: |
-        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ${TARGET_DIR} && scp -r ./target/* ${EC2_USER}@${EC2_HOST}:${TARGET_DIR}"
+        echo "${SSH_PRIVATE_KEY}" > private_key.pem
+        chmod 600 private_key.pem
 
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: build-artifacts
-        path: target/
-        retention-days: 7
+        # Deploy to EC2
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+          # Update package lists and install Java and Tomcat
+          sudo apt-get update
+          sudo apt-get install -y openjdk-11-jdk wget
+          
+          # Install Tomcat
+          wget https://downloads.apache.org/tomcat/tomcat-9/v9.0.78/bin/apache-tomcat-9.0.78.tar.gz
+          tar xzf apache-tomcat-9.0.78.tar.gz
+          sudo mv apache-tomcat-9.0.78 /opt/tomcat
+          sudo chown -R $EC2_USER:$EC2_USER /opt/tomcat
+
+          # Create a directory for deployment
+          mkdir -p /opt/tomcat/webapps
+
+          # Transfer the WAR file to Tomcat's webapps directory
+          scp -i private_key.pem -o StrictHostKeyChecking=no ./target/car-booking.webapp.war $EC2_USER@$EC2_HOST:/opt/tomcat/webapps/
+
+          # Start Tomcat (or restart if already running)
+          /opt/tomcat/bin/startup.sh
+        EOF
+
+    - name: Clean up SSH key
+      run: rm -f private_key.pem
