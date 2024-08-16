@@ -42,3 +42,5 @@ jobs:
 
     - name: Use secret
       run: echo "Using secret: ${{ secrets.SECRET_NAME }}"
+
+      #hidden steps
