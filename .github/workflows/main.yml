@@ -51,3 +51,17 @@ jobs:
     
         # Transfer files to the remote server
         scp -i private_key.pem -o StrictHostKeyChecking=no -r ./target/* $EC2_USER@$EC2_HOST:$TARGET_DIR
+
+    - name: Run Application
+      env:
+        EC2_USER: ${{ secrets.EC2_USER }}
+        EC2_HOST: ${{ secrets.EC2_HOST }}
+        TARGET_DIR: ${{ secrets.TARGET_DIR }}
+      run: |
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST << 'EOF'
+          cd $TARGET_DIR
+          java -jar your-application.jar
+        EOF
+
+    - name: Clean up SSH key
+      run: rm -f private_key.pem
