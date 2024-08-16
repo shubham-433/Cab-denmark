@@ -36,19 +36,18 @@ jobs:
     - name: Run tests
       run: mvn test
 
-    - name: Deploy to AWS EC2
-      if: github.ref == 'refs/heads/main'
+    - name: Deploy to EC2
       env:
         SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
         EC2_USER: ${{ secrets.EC2_USER }}
         EC2_HOST: ${{ secrets.EC2_HOST }}
         TARGET_DIR: ${{ secrets.TARGET_DIR }}
       run: |
-        ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ${TARGET_DIR} && scp -r ./target/* ${EC2_USER}@${EC2_HOST}:${TARGET_DIR}"
-
-    - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: build-artifacts
-        path: target/
-        retention-days: 7
+        echo "${SSH_PRIVATE_KEY}" > private_key.pem
+        chmod 600 private_key.pem
+    
+        # Ensure the directory exists on the remote server
+        ssh -i private_key.pem -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "mkdir -p $TARGET_DIR"
+    
+        # Transfer files to the remote server
+        scp -i private_key.pem -o StrictHostKeyChecking=no -r ./target/* $EC2_USER@$EC2_HOST:$TARGET_DIR
