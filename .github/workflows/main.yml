@@ -4,7 +4,11 @@ on: [push, pull_request]
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        java: [8, 11]
 
     steps:
     - name: Checkout code
@@ -13,7 +17,7 @@ jobs:
     - name: Set up JDK
       uses: actions/setup-java@v3
       with:
-        java-version: 11
+        java-version: ${{ matrix.java }}
         distribution: 'temurin' # Specify the distribution
 
     - name: Cache dependencies
@@ -28,10 +32,12 @@ jobs:
       run: mvn -B package --file pom.xml
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: build-artifacts
         path: target/*.jar
 
     - name: Use secret
       run: echo "Using secret: ${{ secrets.SECRET_NAME }}"
+      env:
+        SECRET_NAME: ${{ secrets.SECRET_NAME }}
