@@ -39,5 +39,3 @@ jobs:
 
     - name: Use secret
       run: echo "Using secret: ${{ secrets.SECRET_NAME }}"
-      env:
-        SECRET_NAME: ${{ secrets.SECRET_NAME }}
