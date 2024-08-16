@@ -37,6 +37,4 @@ jobs:
         name: build-artifacts
         path: target/*.jar
 
-    - name: Use secret
-      run: echo "Using secret: ${{ secrets.SECRET_NAME }}"
-      shell: bash
+   
