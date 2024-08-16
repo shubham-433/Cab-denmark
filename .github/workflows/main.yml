@@ -36,5 +36,7 @@ jobs:
       with:
         name: build-artifacts
         path: target/*.jar
+    - name: Secret
+      run: echo"helow secret value is {{secrets.API_KEY}}"
 
    
