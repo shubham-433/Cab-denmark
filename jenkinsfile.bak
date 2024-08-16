@@ -1,0 +1,41 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('chek-out') {
+            steps {
+                git 'https://github.com/ekka007/cab-booking-webapp_PROJECT.git'
+            }
+        }
+        stage('compiles') {
+            steps {
+               sh 'mvn compile' 
+            }
+        }
+        stage('test') {
+            steps {
+               sh 'mvn test' 
+            }
+        }
+        stage('package creating a artifcat') {
+            steps {
+               sh 'mvn package' 
+            }
+        }
+        stage('Code-analysis') {
+            steps {
+               echo 'code-analyssi done' 
+            }
+        }
+        stage('tnexus-repository') {
+            steps {
+               echo 'successfully transferd to nexus' 
+            }
+        }
+        stage('deploy-to-server') {
+            steps {
+               deploy adapters: [tomcat9(credentialsId: 'deployer-1', path: '', url: 'http://13.234.112.219:8080/')], contextPath: '/webapp', war: '**/*.war' 
+            }
+        }
+    }    
+}
